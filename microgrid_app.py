@@ -345,59 +345,23 @@ if should_run:
         st.plotly_chart(fig2, use_container_width=True)
         st.metric("정전(블랙아웃) 횟수", int(df.blackout.sum()))
 
-   # -----------------------
-# 비용 + 탄소: 누적 시간 흐름 그래프 (선)
-# -----------------------
-with tab3:
-
-    dt_h = time_step_min / 60.0
-
-    # 누적합 계산
-    cum_cost = pd.Series(
-        (df.pv * dt_h) * c_pv +
-        (df.wind * dt_h) * c_wd +
-        (df.hydro * dt_h) * c_hd +
-        (df.smr * dt_h) * c_smr
-    ).cumsum()
-
-    cum_carbon = pd.Series(
-        (df.smr * dt_h) * e_smr
-    ).cumsum()
-
-    fig3 = go.Figure()
-
-    # 누적 비용
-    fig3.add_trace(go.Scatter(
-        x=df.time, y=cum_cost,
-        name="누적 비용 (원)",
-        line=dict(color="#4B8BF5")
-    ))
-
-    # 누적 탄소
-    fig3.add_trace(go.Scatter(
-        x=df.time, y=cum_carbon,
-        name="누적 탄소 (gCO₂)",
-        line=dict(color="#3DDC97"),
-        yaxis="y2"
-    ))
-
-    fig3.update_layout(
-        template="plotly_dark",
-        height=480,
-        yaxis=dict(title="누적 비용 (원)"),
-        yaxis2=dict(title="누적 탄소 (gCO₂)", overlaying="y", side="right")
-    )
-
-    st.plotly_chart(fig3, use_container_width=True)
-
-    # 안전한 마지막 값 추출 (비어 있을 때 오류 방지)
-    last_cost = float(cum_cost.iloc[-1]) if len(cum_cost) > 0 else 0.0
-    last_carbon = float(cum_carbon.iloc[-1]) if len(cum_carbon) > 0 else 0.0
-
-    col1, col2 = st.columns(2)
-    col1.metric("총 비용 (원)", f"{int(last_cost):,}")
-    col2.metric("총 탄소배출 (gCO₂)", f"{int(last_carbon):,}")
-
+    # 비용 + 탄소
+    with tab3:
+        dt_h = time_step_min / 60.0
+        cum_cost = np.cumsum((df.pv * dt_h) * c_pv + (df.wind * dt_h) * c_wd + (df.hydro * dt_h) * c_hd + (df.smr * dt_h) * c_smr)
+        cum_carbon = np.cumsum((df.smr * dt_h) * e_smr)
+        fig3 = go.Figure()
+        fig3.add_trace(go.Scatter(x=df.time, y=cum_cost, name="누적 비용 (원)", line=dict(color="#4B8BF5")))
+        fig3.add_trace(go.Scatter(x=df.time, y=cum_carbon, name="누적 탄소 (gCO₂)", line=dict(color="#3DDC97"), yaxis="y2"))
+        fig3.update_layout(
+            template="plotly_dark", height=480,
+            yaxis=dict(title="누적 비용 (원)"),
+            yaxis2=dict(title="누적 탄소 (gCO₂)", overlaying="y", side="right")
+        )
+        st.plotly_chart(fig3, use_container_width=True)
+        col1, col2 = st.columns(2)
+        col1.metric("총 비용 (원)", f"{int(float(cum_cost[-1])):,}")
+        col2.metric("총 탄소배출 (gCO₂)", f"{int(float(cum_carbon[-1])):,}")
 
     # 분석(도넛)
     with tab4:
